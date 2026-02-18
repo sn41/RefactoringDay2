@@ -1,16 +1,47 @@
 package org.example
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+import kotlin.math.*
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
+fun main() {
+    GearCalc().run(5.5, 1450.0, 8.0) // 5.5 кВт, 1450 об/мин, общее U=8
+}
+
+
+class GearCalc {
+    fun run(p: Double, n: Double, u: Double) {
+        // 1. Кинематика
+        val t1 = 9550 * p / n
+        val u1 = sqrt(u) // Разбивка передаточного числа
+        val u2 = u / u1
+        val n2 = n / u1
+        val t2 = t1 * u1 * 0.97 // 0.97 - КПД ступени
+
+        // 2. Геометрия (быстрый расчет межосевого расстояния)
+        // Ка_коэф = 450 для косозубых
+        val a_w = 450 * (u1 + 1) * cbrt(t1 * 1.1 / (u1 * u1 * 0.3))
+
+        // 3. Прочность зубьев (Контактные напряжения)
+        // sigma_H = Zh * Ze * Zd * sqrt(Ft * (u+1) / (d1 * bw * u))
+        val d1 = 2 * a_w / (u1 + 1)
+        val bw = a_w * 0.3
+        val f_t = 2000 * t1 / d1
+        val s_h = 480 * sqrt((f_t * (u1 + 1)) / (d1 * bw * u1))
+
+        // 4. Расчет вала (упрощенный эквивалентный момент)
+        // d_v = cbrt(M_экв / (0.2 * [tau]))
+        val d_v = cbrt((sqrt(t1.pow(2))) / (0.2 * 25)) * 10
+
+        // 5. Подшипники (Динамическая грузоподъемность)
+        // L10 = (C/P)^p
+        val p_r = f_t * 1.2 // Радиальная нагрузка с коэффициентом
+        val c_req = p_r * ( (10000 * n / 60).pow(1/3.0) ) / 100
+
+        println("--- РЕЗУЛЬТАТЫ РАСЧЕТА ---")
+        println("Межосевое расстояние: $a_w мм")
+        println("Контактные напряжения: $s_h МПа")
+        println("Диаметр ведущего вала: $d_v мм")
+        println("Треб. динамич. грузоподъемность: $c_req кН")
     }
 }
+
+
